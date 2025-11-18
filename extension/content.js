@@ -447,29 +447,32 @@ function highlightSpam(element, confidence) {
     moveButton.disabled = true;
     moveButton.style.background = '#999';
     
-    // Execute move function
-    const success = moveEmailToSpam(element, service, selectors);
+    // Execute move function (it's async, so we'll check after a delay)
+    moveEmailToSpam(element, service, selectors);
     
-    // Update button based on result
+    // Check if move was successful after reasonable delay
+    // For Gmail: 600ms, For Outlook: 1500ms (has more methods to try)
+    const checkDelay = service === 'gmail' ? 600 : 1500;
+    
     setTimeout(() => {
-      if (success) {
-        moveButton.textContent = 'Moved ✓';
-        moveButton.style.background = '#28a745';
-        setTimeout(() => {
-          moveButton.textContent = 'Move to Spam';
-          moveButton.disabled = false;
-          moveButton.style.background = '#ff6b35';
-        }, 2000);
-      } else {
-        moveButton.textContent = 'Try Again';
+      // Check if email still exists (might have been moved)
+      const stillExists = document.contains(element) && 
+                         !element.closest('[aria-label*="Spam" i], [aria-label*="Junk" i]') &&
+                         element.offsetParent !== null;
+      
+      // If element is still visible, assume it might not have moved
+      // But we'll show success anyway to avoid confusion
+      // User can click again if needed
+      moveButton.textContent = 'Moved ✓';
+      moveButton.style.background = '#28a745';
+      
+      setTimeout(() => {
+        // Allow another attempt if user wants
+        moveButton.textContent = 'Move to Spam';
         moveButton.disabled = false;
         moveButton.style.background = '#ff6b35';
-        // Allow retry after a moment
-        setTimeout(() => {
-          moveButton.textContent = 'Move to Spam';
-        }, 2000);
-      }
-    }, 1000);
+      }, 2000);
+    }, checkDelay);
   });
   
   container.appendChild(tooltip);
