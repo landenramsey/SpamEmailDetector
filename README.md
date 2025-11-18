@@ -27,10 +27,10 @@ pip install -r requirements.txt
 
 ### 2. Train the Model
 
-The model must be trained before use. A dataset (`emails.csv`) is included:
+The model must be trained before use. A dataset (`data/emails.csv`) is included:
 
 ```bash
-python train_model.py
+python ml/train_model.py
 ```
 
 This creates:
@@ -44,7 +44,7 @@ This creates:
 The browser extension requires the API server to be running:
 
 ```bash
-./start_server.sh
+./scripts/start_server.sh
 ```
 
 The server will:
@@ -55,7 +55,7 @@ The server will:
 
 **To stop the server:**
 ```bash
-./stop_server.sh
+./scripts/stop_server.sh
 ```
 
 **To check if server is running:**
@@ -99,7 +99,7 @@ curl http://localhost:8000/health
 ### Starting the Server
 
 ```bash
-./start_server.sh
+./scripts/start_server.sh
 ```
 
 - Runs in background (survives terminal closure)
@@ -109,7 +109,7 @@ curl http://localhost:8000/health
 ### Stopping the Server
 
 ```bash
-./stop_server.sh
+./scripts/stop_server.sh
 ```
 
 Or manually:
@@ -139,7 +139,7 @@ Expected response:
 
 - ✅ Survives terminal closure
 - ✅ Survives logout
-- ❌ Stops on computer restart (run `./start_server.sh` again)
+- ❌ Stops on computer restart (run `./scripts/start_server.sh` again)
 
 ## Project Structure
 
@@ -151,16 +151,22 @@ EmailSpamDetector/
 │   ├── background.js      # API communication
 │   ├── popup.html/js      # Settings UI
 │   └── icons/             # Extension icons
-├── api_server.py          # FastAPI server
-├── spam_detector.py       # Spam detection class (used by API)
-├── spam_model.py          # PyTorch model definition
-├── train_model.py         # Model training script
-├── config.py              # Configuration settings
-├── start_server.sh         # Server startup script
-├── stop_server.sh          # Server stop script
-├── emails.csv              # Training dataset
+├── backend/                # API server files
+│   ├── api_server.py      # FastAPI server
+│   └── config.py          # Configuration settings
+├── ml/                     # Machine learning files
+│   ├── spam_model.py      # PyTorch model definition
+│   ├── spam_detector.py   # Spam detection class
+│   └── train_model.py     # Model training script
+├── scripts/                # Utility scripts
+│   ├── start_server.sh    # Server startup script
+│   └── stop_server.sh     # Server stop script
+├── data/                   # Data files
+│   └── emails.csv         # Training dataset
 ├── spam_model.pth          # Trained model (after training)
-└── vocab.pkl               # Vocabulary (after training)
+├── vocab.pkl               # Vocabulary (after training)
+├── requirements.txt        # Python dependencies
+└── README.md               # Project documentation
 ```
 
 ## How It Works
@@ -209,8 +215,8 @@ EmailSpamDetector/
 - Verify model files exist: `ls spam_model.pth vocab.pkl`
 
 **"Model not loaded" error:**
-- Train the model first: `python train_model.py`
-- Ensure `spam_model.pth` and `vocab.pkl` exist
+- Train the model first: `python ml/train_model.py`
+- Ensure `spam_model.pth` and `vocab.pkl` exist in the root directory
 
 **"No module named 'X'":**
 - Install dependencies: `pip install -r requirements.txt`

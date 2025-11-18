@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from spam_detector import SpamDetector
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ml.spam_detector import SpamDetector
 import uvicorn
 
 app = FastAPI(title="Email Spam Detector API")

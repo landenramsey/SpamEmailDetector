@@ -13,7 +13,7 @@ sleep 1
 
 # Start the server with nohup (keeps running after terminal closes)
 echo "Starting Spam Detector API server..."
-nohup python3 "$SCRIPT_DIR/api_server.py" > "$SCRIPT_DIR/server.log" 2>&1 &
+nohup python3 "$SCRIPT_DIR/../backend/api_server.py" > "$SCRIPT_DIR/../server.log" 2>&1 &
 
 # Wait a moment to check if it started
 sleep 2
@@ -22,16 +22,16 @@ sleep 2
 if pgrep -f "api_server.py" > /dev/null; then
     echo "✅ Spam Detector API server started successfully!"
     echo "Server is running in the background"
-    echo "Logs are being written to: $SCRIPT_DIR/server.log"
+    echo "Logs are being written to: $SCRIPT_DIR/../server.log"
     echo ""
     echo "To stop the server, run: ./stop_server.sh"
     echo "Or manually: pkill -f api_server.py"
     echo ""
-    echo "To view logs: tail -f $SCRIPT_DIR/server.log"
+    echo "To view logs: tail -f $SCRIPT_DIR/../server.log"
     echo "To check health: curl http://localhost:8000/health"
 else
     echo "❌ Failed to start server. Check the logs:"
-    echo "tail -f $SCRIPT_DIR/server.log"
+    echo "tail -f $SCRIPT_DIR/../server.log"
     exit 1
 fi
 

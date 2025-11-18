@@ -8,8 +8,10 @@ import numpy as np
 import pickle
 import os
 import pandas as pd
-from spam_model import SpamClassifier
-from config import *
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ml.spam_model import SpamClassifier
+from backend.config import *
 
 class EmailDataset(Dataset):
     def __init__(self, texts, labels, vocab):
@@ -58,8 +60,10 @@ def prepare_data(texts, labels):
     
     return dataset, vocab
 
-def load_data_from_csv(csv_path='emails.csv'):
+def load_data_from_csv(csv_path=None):
     """Load email data from CSV file"""
+    if csv_path is None:
+        csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'emails.csv')
     print(f"Loading data from {csv_path}...")
     df = pd.read_csv(csv_path)
     
@@ -121,17 +125,19 @@ def train_model(texts, labels):
         print(f"Train Loss: {train_loss/len(train_loader):.4f}, Val Loss: {val_loss/len(val_loader):.4f}, Accuracy: {accuracy:.2f}%")
     
     # Save model and vocab
-    torch.save(model.state_dict(), MODEL_PATH)
-    with open('vocab.pkl', 'wb') as f:
+    model_path = os.path.join(os.path.dirname(__file__), '..', MODEL_PATH)
+    vocab_path = os.path.join(os.path.dirname(__file__), '..', 'vocab.pkl')
+    torch.save(model.state_dict(), model_path)
+    with open(vocab_path, 'wb') as f:
         pickle.dump(vocab, f)
     
-    print(f"Model saved to {MODEL_PATH}")
-    print(f"Vocabulary saved to vocab.pkl")
+    print(f"Model saved to {model_path}")
+    print(f"Vocabulary saved to {vocab_path}")
     return model, vocab
 
 if __name__ == "__main__":
     # Load data from CSV
-    texts, labels = load_data_from_csv('emails.csv')
+    texts, labels = load_data_from_csv()
     
     # Train the model
     train_model(texts, labels)

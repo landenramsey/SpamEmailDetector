@@ -20,7 +20,7 @@ if not EMAIL_USER or not EMAIL_PASSWORD:
     print("  EMAIL_PASSWORD=your_app_specific_password")
 
 # Model Configuration
-MODEL_PATH = 'spam_model.pth'
+MODEL_PATH = 'spam_model.pth'  # Relative to project root
 VOCAB_SIZE = 10000
 EMBEDDING_DIM = 128
 HIDDEN_DIM = 256

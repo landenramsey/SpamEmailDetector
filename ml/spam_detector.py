@@ -1,8 +1,11 @@
 import torch
 import pickle
 import re
-from spam_model import SpamClassifier
-from config import *
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ml.spam_model import SpamClassifier
+from backend.config import *
 
 class SpamDetector:
     def __init__(self):
@@ -15,11 +18,13 @@ class SpamDetector:
         """Load trained model and vocabulary"""
         try:
             self.model = SpamClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES)
-            self.model.load_state_dict(torch.load(MODEL_PATH, map_location=self.device))
+            model_path = os.path.join(os.path.dirname(__file__), '..', MODEL_PATH)
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.eval()
             self.model.to(self.device)
             
-            with open('vocab.pkl', 'rb') as f:
+            vocab_path = os.path.join(os.path.dirname(__file__), '..', 'vocab.pkl')
+            with open(vocab_path, 'rb') as f:
                 self.vocab = pickle.load(f)
             
             print("Model loaded successfully")
