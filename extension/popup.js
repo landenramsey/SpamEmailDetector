@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       'apiUrl',
       'isEnabled',
       'confidenceThreshold',
-      'autoDelete',
+      'autoMoveToSpam',
       'scannedCount',
       'spamCount'
     ]);
@@ -37,11 +37,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
     
-    const autoDeleteCheckbox = document.getElementById('autoDelete');
-    if (autoDeleteCheckbox) {
-      autoDeleteCheckbox.checked = items.autoDelete || false;
-      autoDeleteCheckbox.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ autoDelete: e.target.checked });
+    const autoMoveToSpamCheckbox = document.getElementById('autoMoveToSpam');
+    if (autoMoveToSpamCheckbox) {
+      autoMoveToSpamCheckbox.checked = items.autoMoveToSpam || false;
+      autoMoveToSpamCheckbox.addEventListener('change', (e) => {
+        chrome.storage.sync.set({ autoMoveToSpam: e.target.checked });
       });
     }
     
