@@ -1,8 +1,7 @@
 # Email Spam Detector
 
-A PyTorch-based email spam detection system with two modes:
+A PyTorch-based email spam detection system with a browser extension:
 - **Browser Extension**: Real-time spam detection in Gmail/Outlook
-- **CLI Tool**: Batch processing and deletion of spam emails
 
 ## Features
 
@@ -10,15 +9,13 @@ A PyTorch-based email spam detection system with two modes:
 - 🌐 Browser extension for Gmail and Outlook
 - 🔄 Real-time email scanning
 - ⚙️ Configurable confidence thresholds
-- 🛡️ Safe dry-run mode for testing
-- 📊 Batch processing via CLI
+- 🎨 Modern, visually appealing popup interface
+- 📊 Real-time statistics tracking
 
 ## Prerequisites
 
 - Python 3.8 or higher
 - Chrome/Edge browser (for extension)
-- Email account with IMAP access (for CLI mode)
-- For Gmail: 2-factor authentication and app-specific password
 
 ## Quick Start
 
@@ -97,44 +94,6 @@ curl http://localhost:8000/health
 - When new emails appear
 - Every 10 seconds automatically
 
-## CLI Mode (Optional)
-
-For batch processing and automatic deletion:
-
-### 1. Configure Email Credentials
-
-Create a `.env` file:
-
-```env
-EMAIL_HOST=imap.gmail.com
-EMAIL_PORT=993
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_specific_password
-```
-
-**For Gmail:**
-1. Enable 2-factor authentication
-2. Generate app-specific password: https://myaccount.google.com/apppasswords
-3. Use the app password (not your regular password)
-
-### 2. Configure Settings
-
-Edit `config.py`:
-- `DRY_RUN = True`: Test without deleting (recommended first)
-- `CONFIDENCE_THRESHOLD = 0.9`: Minimum confidence to delete (0.0-1.0)
-
-### 3. Run Spam Detector
-
-**Test mode (dry-run):**
-```bash
-python spam_detector.py
-```
-
-**Actual deletion:**
-1. Review dry-run results
-2. Set `DRY_RUN = False` in `config.py`
-3. Run again: `python spam_detector.py`
-
 ## Server Management
 
 ### Starting the Server
@@ -193,10 +152,9 @@ EmailSpamDetector/
 │   ├── popup.html/js      # Settings UI
 │   └── icons/             # Extension icons
 ├── api_server.py          # FastAPI server
-├── spam_detector.py       # CLI spam detector
+├── spam_detector.py       # Spam detection class (used by API)
 ├── spam_model.py          # PyTorch model definition
 ├── train_model.py         # Model training script
-├── email_fetcher.py        # IMAP email fetching
 ├── config.py              # Configuration settings
 ├── start_server.sh         # Server startup script
 ├── stop_server.sh          # Server stop script
@@ -254,13 +212,6 @@ EmailSpamDetector/
 - Train the model first: `python train_model.py`
 - Ensure `spam_model.pth` and `vocab.pkl` exist
 
-### CLI Issues
-
-**"Authentication failed":**
-- Check `.env` file exists and has correct credentials
-- For Gmail, use app-specific password (not regular password)
-- Ensure IMAP is enabled in email settings
-
 **"No module named 'X'":**
 - Install dependencies: `pip install -r requirements.txt`
 
@@ -273,13 +224,6 @@ Access via extension popup:
 - **Enable Spam Detection**: Toggle scanning on/off
 - **Confidence Threshold**: 0.0-1.0 (higher = more conservative)
 - **Auto-Delete**: ⚠️ Automatically delete spam (use with caution)
-
-### CLI Settings (`config.py`)
-
-- `DRY_RUN`: Test mode (True) or actual deletion (False)
-- `CONFIDENCE_THRESHOLD`: Minimum spam confidence to delete (0.0-1.0)
-- `EMAIL_HOST`: IMAP server (default: `imap.gmail.com`)
-- `EMAIL_PORT`: IMAP port (default: 993)
 
 ### Model Settings (`config.py`)
 
