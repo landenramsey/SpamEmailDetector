@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 400px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 0;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .header .subtitle {
+      font-size: 13px;
+      opacity: 0.9;
+      font-weight: 400;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .status-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .status-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+    }
+    
+    .status-card.connected {
+      background: linear-gradient(135deg, #d4edda 0%, #a8e6cf 100%);
+      border-color: #28a745;
+    }
+    
+    .status-card.connected::before {
+      transform: scaleX(1);
+      background: linear-gradient(90deg, #28a745, #20c997);
+    }
+    
+    .status-card.disconnected {
+      background: linear-gradient(135deg, #ffe5e5 0%, #ffcccc 100%);
+      border-color: #dc3545;
+    }
+    
+    .status-card.disconnected::before {
+      transform: scaleX(1);
+      background: linear-gradient(90deg, #dc3545, #c82333);
+    }
+    
+    .status-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    
+    .status-text {
+      flex: 1;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-icon {
+      font-size: 20px;
+      animation: spin 1s linear infinite;
+    }
+    
+    .status-card.connected .status-icon {
+      animation: none;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 10px;
+      padding: 12px;
+      color: white;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .section {
+      margin-bottom: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+    
+    .section:hover {
+      border-color: #667eea;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    }
+    
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+    
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    
+    input[type="text"]:focus, input[type="number"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .toggle-label {
+      font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: .4s;
+      border-radius: 28px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    input:checked + .slider {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+    
+    .info {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    
+    .info.warning {
+      color: #ed8936;
+      font-weight: 500;
+    }
+    
+    .confidence-slider-container {
+      margin-top: 12px;
+    }
+    
+    .confidence-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .confidence-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .confidence-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+      margin-top: 8px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .footer {
+      padding: 16px 20px;
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      text-align: center;
+      font-size: 11px;
+      color: #718096;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .badge.active {
+      background: #48bb78;
+      color: white;
+    }
+    
+    .badge.inactive {
+      background: #cbd5e0;
+      color: #718096;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span>🛡️</span>
+        <span>Spam Detector</span>
+      </h1>
+      <div class="subtitle">AI-Powered Email Protection</div>
+    </div>
+    
+    <div class="content">
+      <div id="status" class="status-card disconnected">
+        <div class="status-content">
+          <div class="status-text">
+            <span class="status-icon">⏳</span>
+            <span id="statusMessage">Checking API connection...</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="scannedCount">0</div>
+          <div class="stat-label">Emails Scanned</div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+          <div class="stat-value" id="spamCount">0</div>
+          <div class="stat-label">Spam Detected</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">
+          <span>⚙️</span>
+          <span>Detection Settings</span>
+        </div>
+        <div class="toggle">
+          <label class="toggle-label" for="enabled">Enable Spam Detection</label>
+          <label class="switch">
+            <input type="checkbox" id="enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="info">
+          <span id="enabledStatus" class="badge inactive">Inactive</span>
+          Automatically scan and highlight spam emails
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">
+          <span>🔗</span>
+          <span>API Configuration</span>
+        </div>
+        <label for="apiUrl">API Server URL</label>
+        <input type="text" id="apiUrl" placeholder="http://localhost:8000">
+        <div class="info">Local or remote spam detection API endpoint</div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">
+          <span>🎯</span>
+          <span>Confidence Threshold</span>
+        </div>
+        <div class="confidence-display">
+          <label for="confidence">Sensitivity</label>
+          <span class="confidence-value" id="confidenceDisplay">90%</span>
+        </div>
+        <div class="confidence-slider-container">
+          <input type="range" id="confidence" min="0" max="1" step="0.05" value="0.9">
+          <div class="confidence-labels">
+            <span>More Aggressive</span>
+            <span>Balanced</span>
+            <span>Conservative</span>
+          </div>
+        </div>
+        <div class="info">Only mark emails as spam if confidence exceeds this threshold</div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">
+          <span>⚠️</span>
+          <span>Advanced Options</span>
+        </div>
+        <div class="toggle">
+          <label class="toggle-label" for="autoDelete">Auto-Delete Spam</label>
+          <label class="switch">
+            <input type="checkbox" id="autoDelete">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="info warning">⚠️ Automatically delete detected spam emails (use with extreme caution)</div>
+      </div>
+      
+      <button id="testConnection">
+        <span>🔍</span> Test Connection
+      </button>
+    </div>
+    
+    <div class="footer">
+      Powered by PyTorch LSTM • Accuracy: ~97%
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
