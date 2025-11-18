@@ -72,18 +72,36 @@ function getEmailText(element, service) {
       snippet = textParts.slice(1).join(' ') || '';
     }
   } else if (service === 'outlook') {
-    // Try multiple Outlook selectors
-    const subjectEl = element.querySelector('[data-test-id="message-subject"]') ||
-                      element.querySelector('.ms-DetailsRow-cell[title]') ||
-                      element.querySelector('span[title]') ||
-                      element.querySelector('[aria-label*="Subject"]') ||
-                      element.querySelector('.ms-fontWeight-semibold');
+    // Try multiple Outlook selectors with priority
+    // Modern Outlook
+    let subjectEl = element.querySelector('[data-test-id="message-subject"]') ||
+                    element.querySelector('[data-test-id="subject-text"]') ||
+                    element.querySelector('span[title][data-test-id]');
     
-    const snippetEl = element.querySelector('[data-test-id="message-preview"]') ||
-                      element.querySelector('.ms-fontColor-neutralSecondary') ||
-                      element.querySelector('[data-test-id="preview-text"]');
+    // Classic Outlook
+    if (!subjectEl) {
+      subjectEl = element.querySelector('.ms-DetailsRow-cell[title]') ||
+                  element.querySelector('.ms-fontWeight-semibold[title]');
+    }
     
-    subject = subjectEl?.textContent?.trim() || subjectEl?.title?.trim() || '';
+    // Generic fallbacks
+    if (!subjectEl) {
+      subjectEl = element.querySelector('span[title]') ||
+                  element.querySelector('[aria-label*="Subject" i]') ||
+                  element.querySelector('div[title]');
+    }
+    
+    // Preview/snippet
+    let snippetEl = element.querySelector('[data-test-id="message-preview"]') ||
+                    element.querySelector('[data-test-id="preview-text"]') ||
+                    element.querySelector('[data-test-id="preview"]');
+    
+    if (!snippetEl) {
+      snippetEl = element.querySelector('.ms-fontColor-neutralSecondary') ||
+                  element.querySelector('.ms-fontColor-neutralPrimary');
+    }
+    
+    subject = subjectEl?.textContent?.trim() || subjectEl?.title?.trim() || subjectEl?.getAttribute('title')?.trim() || '';
     snippet = snippetEl?.textContent?.trim() || '';
     
     // Fallback: extract from element text if selectors fail
@@ -91,9 +109,14 @@ function getEmailText(element, service) {
       const allText = element.textContent?.trim() || '';
       const textParts = allText.split('\n').filter(t => t.trim().length > 3);
       if (textParts.length > 0) {
-        subject = textParts[0].trim();
-        snippet = textParts.slice(1).join(' ').trim();
+        subject = textParts[0].trim().substring(0, 100); // Limit length
+        snippet = textParts.slice(1).join(' ').trim().substring(0, 200);
       }
+    }
+    
+    // Debug logging for Outlook
+    if (!subject && !snippet) {
+      console.log('[Spam Detector] Outlook: Could not extract text from element:', element);
     }
   }
   
@@ -102,87 +125,158 @@ function getEmailText(element, service) {
 
 function moveEmailToSpam(element, service, selectors) {
   console.log(`[Spam Detector] Attempting to move email to spam folder (${service})`);
+  console.log(`[Spam Detector] Element:`, element);
   
   if (service === 'gmail') {
-    // Try to find and click the spam button
-    const spamBtn = element.querySelector('[aria-label*="Report spam"]') ||
-                    element.querySelector('[aria-label*="Mark as spam"]') ||
-                    element.querySelector('div[role="button"][aria-label*="spam" i]');
+    // Gmail: Try multiple methods
+    // Method 1: Hover to reveal action buttons
+    element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
     
-    if (spamBtn) {
-      console.log('[Spam Detector] Found Gmail spam button, clicking...');
-      spamBtn.click();
-      return true;
-    }
-    
-    // Alternative: Try right-click menu option
-    // Right-click on email to open context menu, then look for spam option
-    try {
-      const rect = element.getBoundingClientRect();
-      const event = new MouseEvent('contextmenu', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
-      });
-      element.dispatchEvent(event);
+    setTimeout(() => {
+      // Look for spam button after hover
+      const spamBtn = element.querySelector('[aria-label*="Report spam" i]') ||
+                      element.querySelector('[aria-label*="Mark as spam" i]') ||
+                      element.querySelector('div[role="button"][aria-label*="spam" i]') ||
+                      element.querySelector('button[aria-label*="spam" i]') ||
+                      element.querySelector('[title*="spam" i]');
       
-      // Wait for menu, then look for spam option
-      setTimeout(() => {
-        const spamMenuOption = document.querySelector('[aria-label*="spam" i], [data-action="spam"]');
-        if (spamMenuOption) {
-          spamMenuOption.click();
-        }
-      }, 100);
-    } catch (error) {
-      console.error('[Spam Detector] Error trying context menu:', error);
-    }
+      if (spamBtn) {
+        console.log('[Spam Detector] Found Gmail spam button, clicking...', spamBtn);
+        spamBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        spamBtn.click();
+        console.log('[Spam Detector] ✅ Gmail spam button clicked');
+        return true;
+      }
+      
+      // Method 2: Try checking parent container
+      let parent = element.closest('tr, div[role="row"]');
+      if (parent) {
+        parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+        setTimeout(() => {
+          const parentSpamBtn = parent.querySelector('[aria-label*="spam" i]');
+          if (parentSpamBtn) {
+            console.log('[Spam Detector] Found spam button in parent after hover');
+            parentSpamBtn.click();
+          }
+        }, 150);
+      }
+    }, 200);
+    
   } else if (service === 'outlook') {
-    // Outlook: Find and click junk/spam button
-    const spamBtn = element.querySelector('[aria-label*="Junk" i]') ||
+    // Outlook: Try multiple approaches
+    console.log('[Spam Detector] Searching for Outlook spam/junk button...');
+    
+    // Method 1: Hover to reveal buttons
+    element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+    element.focus();
+    
+    setTimeout(() => {
+      // Look for junk button after hover
+      let junkBtn = element.querySelector('[aria-label*="Junk" i]') ||
                     element.querySelector('[aria-label*="Spam" i]') ||
                     element.querySelector('[title*="Junk" i]') ||
                     element.querySelector('[title*="Spam" i]') ||
-                    element.querySelector('button[aria-label*="Mark"]') ||
-                    element.querySelector('[data-icon-name*="Junk"]');
-    
-    if (spamBtn) {
-      console.log('[Spam Detector] Found Outlook spam button, clicking...');
-      spamBtn.click();
-      return true;
-    }
-    
-    // Alternative: Try right-click context menu for Outlook
-    try {
-      const rect = element.getBoundingClientRect();
-      const event = new MouseEvent('contextmenu', {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + rect.height / 2
-      });
-      element.dispatchEvent(event);
+                    element.querySelector('button[aria-label*="Junk" i]') ||
+                    element.querySelector('[data-icon-name*="Junk" i]') ||
+                    element.querySelector('[aria-label*="Mark as junk" i]') ||
+                    element.querySelector('[aria-label*="Report as junk" i]');
       
-      // Wait for menu, then look for junk/spam option
-      setTimeout(() => {
-        const junkMenuOption = document.querySelector('[aria-label*="Junk" i], [aria-label*="Spam" i], [title*="Junk" i]');
-        if (junkMenuOption) {
-          junkMenuOption.click();
+      // Method 2: Check parent containers
+      if (!junkBtn) {
+        let parent = element.parentElement;
+        for (let i = 0; i < 4 && parent && parent !== document.body; i++) {
+          junkBtn = parent.querySelector('[aria-label*="Junk" i], [aria-label*="Spam" i], [title*="Junk" i]');
+          if (junkBtn) {
+            console.log(`[Spam Detector] Found junk button in parent level ${i}`);
+            break;
+          }
+          parent = parent.parentElement;
         }
-      }, 150);
-    } catch (error) {
-      console.error('[Spam Detector] Error trying Outlook context menu:', error);
-    }
+      }
+      
+      if (junkBtn) {
+        console.log('[Spam Detector] Found Outlook junk button, clicking...', junkBtn);
+        junkBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          junkBtn.click();
+          console.log('[Spam Detector] ✅ Outlook junk button clicked');
+        }, 100);
+        return true;
+      }
+      
+      // Method 3: Try selecting the email first, then using toolbar
+      try {
+        console.log('[Spam Detector] Trying selection method...');
+        element.click(); // Select the email
+        setTimeout(() => {
+          // Look for junk button in toolbar/ribbon
+          const toolbarJunkBtn = document.querySelector('[aria-label*="Junk" i], button[aria-label*="Junk" i], [title*="Junk" i]');
+          if (toolbarJunkBtn) {
+            console.log('[Spam Detector] Found junk button in toolbar');
+            toolbarJunkBtn.click();
+            return true;
+          }
+        }, 300);
+      } catch (error) {
+        console.error('[Spam Detector] Error with selection method:', error);
+      }
+      
+      // Method 4: Right-click context menu (last resort)
+      try {
+        console.log('[Spam Detector] Trying context menu approach...');
+        const rect = element.getBoundingClientRect();
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        setTimeout(() => {
+          element.click(); // Select first
+          setTimeout(() => {
+            const contextEvent = new MouseEvent('contextmenu', {
+              bubbles: true,
+              cancelable: true,
+              view: window,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + rect.height / 2,
+              button: 2
+            });
+            element.dispatchEvent(contextEvent);
+            
+            // Wait for menu and look for junk option
+            setTimeout(() => {
+              const junkMenuOption = document.querySelector('[aria-label*="Junk" i], [aria-label*="Spam" i], [title*="Junk" i], button[aria-label*="Junk" i], [role="menuitem"][aria-label*="Junk" i]');
+              if (junkMenuOption) {
+                console.log('[Spam Detector] Found junk option in context menu');
+                junkMenuOption.click();
+                return true;
+              } else {
+                // Log available options for debugging
+                const menuItems = document.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]');
+                console.log('[Spam Detector] Context menu items:', Array.from(menuItems).slice(0, 15).map(el => ({
+                  label: el.getAttribute('aria-label') || el.textContent?.trim().substring(0, 50),
+                  text: el.textContent?.trim().substring(0, 50)
+                })));
+              }
+            }, 400);
+          }, 200);
+        }, 300);
+      } catch (error) {
+        console.error('[Spam Detector] Error with context menu:', error);
+      }
+    }, 300);
   }
   
-  console.log('[Spam Detector] Could not find spam button for this email');
+  console.log('[Spam Detector] ⚠️ Attempting move to spam - check console for details');
   return false;
 }
 
 function highlightSpam(element, confidence) {
   console.log(`[Spam Detector] Highlighting element:`, element);
+  
+  // Skip if already highlighted
+  if (element.hasAttribute('data-spam-highlighted')) {
+    return;
+  }
+  
+  element.setAttribute('data-spam-highlighted', 'true');
   
   // Add visual indicator - make it very visible
   element.style.borderLeft = '5px solid #ff0000';
@@ -191,38 +285,92 @@ function highlightSpam(element, confidence) {
   element.setAttribute('data-spam-detected', 'true');
   element.setAttribute('data-spam-confidence', confidence.toFixed(2));
   
-  // Remove existing tooltip if any
-  const existingTooltip = element.querySelector('.spam-tooltip');
-  if (existingTooltip) {
-    existingTooltip.remove();
-  }
-  
-  // Add tooltip
-  const tooltip = document.createElement('div');
-  tooltip.className = 'spam-tooltip';
-  tooltip.textContent = `⚠️ SPAM (${(confidence * 100).toFixed(1)}% confidence)`;
-  tooltip.style.cssText = `
-    position: absolute;
-    background: #ff0000;
-    color: white;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: bold;
-    z-index: 10000;
-    pointer-events: none;
-    top: 5px;
-    right: 5px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  `;
-  
   // Ensure parent has relative positioning
   const computedStyle = window.getComputedStyle(element);
   if (computedStyle.position === 'static') {
     element.style.position = 'relative';
   }
   
-  element.appendChild(tooltip);
+  // Remove existing tooltip/button if any
+  const existingTooltip = element.querySelector('.spam-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+  const existingButton = element.querySelector('.spam-move-button');
+  if (existingButton) {
+    existingButton.remove();
+  }
+  
+  // Get service type
+  const service = detectEmailService();
+  
+  // Add tooltip with move button
+  const container = document.createElement('div');
+  container.className = 'spam-tooltip';
+  container.style.cssText = `
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 10000;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  `;
+  
+  const tooltip = document.createElement('div');
+  tooltip.textContent = `⚠️ SPAM (${(confidence * 100).toFixed(1)}%)`;
+  tooltip.style.cssText = `
+    background: #ff0000;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  `;
+  
+  // Add manual move to spam button
+  const moveButton = document.createElement('button');
+  moveButton.className = 'spam-move-button';
+  moveButton.textContent = 'Move to Spam';
+  moveButton.style.cssText = `
+    background: #ff6b35;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+  `;
+  
+  moveButton.addEventListener('mouseenter', () => {
+    moveButton.style.background = '#e55a2b';
+    moveButton.style.transform = 'scale(1.05)';
+  });
+  
+  moveButton.addEventListener('mouseleave', () => {
+    moveButton.style.background = '#ff6b35';
+    moveButton.style.transform = 'scale(1)';
+  });
+  
+  moveButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('[Spam Detector] Manual move to spam button clicked');
+    const selectors = service === 'gmail' ? GMAIL_SELECTORS : OUTLOOK_SELECTORS;
+    moveEmailToSpam(element, service, selectors);
+    moveButton.textContent = 'Moving...';
+    moveButton.disabled = true;
+  });
+  
+  container.appendChild(tooltip);
+  container.appendChild(moveButton);
+  element.appendChild(container);
   
   console.log(`[Spam Detector] ✅ Spam email highlighted successfully`);
 }
@@ -255,20 +403,41 @@ async function scanEmails() {
       emailElements = document.querySelectorAll('div[role="main"] tbody tr');
     }
   } else if (service === 'outlook') {
-    // Try different Outlook selectors
-    emailElements = document.querySelectorAll('[role="listitem"][data-convid]');
+    // Try multiple Outlook selectors in order of reliability
+    console.log('[Spam Detector] Attempting Outlook email detection...');
+    
+    // Modern Outlook web app
+    emailElements = document.querySelectorAll('[data-convid][role="listitem"]');
     if (emailElements.length === 0) {
-      emailElements = document.querySelectorAll('div[role="listitem"]');
+      emailElements = document.querySelectorAll('[role="listitem"][data-convid]');
     }
     if (emailElements.length === 0) {
       emailElements = document.querySelectorAll('[data-test-id="message-list-item"]');
     }
     if (emailElements.length === 0) {
-      emailElements = document.querySelectorAll('.ms-DetailsRow');
+      // Classic Outlook
+      emailElements = document.querySelectorAll('.ms-DetailsRow[role="row"]');
     }
     if (emailElements.length === 0) {
-      // Fallback: try finding email rows in the main content area
-      emailElements = document.querySelectorAll('div[role="main"] [role="listitem"]');
+      emailElements = document.querySelectorAll('div[role="listitem"]');
+    }
+    if (emailElements.length === 0) {
+      // Try finding in main content area
+      const mainArea = document.querySelector('[role="main"], div[role="grid"], div[role="region"]');
+      if (mainArea) {
+        emailElements = mainArea.querySelectorAll('[role="listitem"], [role="row"]');
+      }
+    }
+    if (emailElements.length === 0) {
+      // Last resort: look for any elements that might be email rows
+      emailElements = document.querySelectorAll('div[data-test-id*="message"], div[data-test-id*="item"]');
+    }
+    
+    console.log(`[Spam Detector] Found ${emailElements.length} potential Outlook email elements`);
+    
+    // Log first few elements for debugging
+    if (emailElements.length > 0 && emailElements.length <= 5) {
+      console.log('[Spam Detector] Outlook email elements:', Array.from(emailElements).slice(0, 3));
     }
   }
   
@@ -327,7 +496,13 @@ async function scanEmails() {
               // Optional: Auto-move to spam (can be toggled in settings)
               chrome.storage.sync.get(['autoMoveToSpam'], (items) => {
                 if (items.autoMoveToSpam) {
-                  moveEmailToSpam(element, service, selectors);
+                  console.log('[Spam Detector] Auto-move enabled, attempting to move email to spam...');
+                  // Small delay to ensure highlighting is complete
+                  setTimeout(() => {
+                    moveEmailToSpam(element, service, selectors);
+                  }, 300);
+                } else {
+                  console.log('[Spam Detector] Auto-move disabled in settings');
                 }
               });
             } else if (response.is_spam) {
