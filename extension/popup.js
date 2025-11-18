@@ -11,52 +11,61 @@ document.addEventListener('DOMContentLoaded', async () => {
       'spamCount'
     ]);
     
-    if (items.apiUrl) {
-      document.getElementById('apiUrl').value = items.apiUrl;
+    const enabled = items.isEnabled !== false;
+    const enabledCheckbox = document.getElementById('enabled');
+    if (enabledCheckbox) {
+      enabledCheckbox.checked = enabled;
+      updateEnabledStatus(enabled);
+      enabledCheckbox.addEventListener('change', (e) => {
+        const isEnabled = e.target.checked;
+        chrome.storage.sync.set({ isEnabled });
+        updateEnabledStatus(isEnabled);
+      });
     }
     
-    const enabled = items.isEnabled !== false;
-    document.getElementById('enabled').checked = enabled;
-    updateEnabledStatus(enabled);
-    
     const confidence = items.confidenceThreshold || 0.9;
-    document.getElementById('confidence').value = confidence;
-    updateConfidenceDisplay(confidence);
+    const confidenceInput = document.getElementById('confidence');
+    if (confidenceInput) {
+      confidenceInput.value = confidence;
+      updateConfidenceDisplay(confidence);
+      confidenceInput.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        if (value >= 0 && value <= 1) {
+          chrome.storage.sync.set({ confidenceThreshold: value });
+          updateConfidenceDisplay(value);
+        }
+      });
+    }
     
-    document.getElementById('autoDelete').checked = items.autoDelete || false;
+    const autoDeleteCheckbox = document.getElementById('autoDelete');
+    if (autoDeleteCheckbox) {
+      autoDeleteCheckbox.checked = items.autoDelete || false;
+      autoDeleteCheckbox.addEventListener('change', (e) => {
+        chrome.storage.sync.set({ autoDelete: e.target.checked });
+      });
+    }
+    
+    const apiUrlInput = document.getElementById('apiUrl');
+    if (apiUrlInput) {
+      if (items.apiUrl) {
+        apiUrlInput.value = items.apiUrl;
+      }
+      apiUrlInput.addEventListener('change', (e) => {
+        chrome.storage.sync.set({ apiUrl: e.target.value });
+        checkAPI();
+      });
+    }
+    
+    const testButton = document.getElementById('testConnection');
+    if (testButton) {
+      testButton.addEventListener('click', checkAPI);
+    }
     
     // Load stats
     updateStats(items.scannedCount || 0, items.spamCount || 0);
     
     // Check API connection
     checkAPI();
-    
-    // Save settings on change
-    document.getElementById('enabled').addEventListener('change', (e) => {
-      const isEnabled = e.target.checked;
-      chrome.storage.sync.set({ isEnabled });
-      updateEnabledStatus(isEnabled);
-    });
-    
-    document.getElementById('apiUrl').addEventListener('change', (e) => {
-      chrome.storage.sync.set({ apiUrl: e.target.value });
-      checkAPI();
-    });
-    
-    const confidenceInput = document.getElementById('confidence');
-    confidenceInput.addEventListener('input', (e) => {
-      const value = parseFloat(e.target.value);
-      if (value >= 0 && value <= 1) {
-        chrome.storage.sync.set({ confidenceThreshold: value });
-        updateConfidenceDisplay(value);
-      }
-    });
-    
-    document.getElementById('autoDelete').addEventListener('change', (e) => {
-      chrome.storage.sync.set({ autoDelete: e.target.checked });
-    });
-    
-    document.getElementById('testConnection').addEventListener('click', checkAPI);
     
     // Listen for stats updates from content script
     chrome.storage.onChanged.addListener((changes) => {
@@ -76,56 +85,74 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   function updateEnabledStatus(isEnabled) {
     const badge = document.getElementById('enabledStatus');
-    if (isEnabled) {
-      badge.textContent = 'Active';
-      badge.className = 'badge active';
-    } else {
-      badge.textContent = 'Inactive';
-      badge.className = 'badge inactive';
+    if (badge) {
+      if (isEnabled) {
+        badge.textContent = 'Active';
+        badge.className = 'badge active';
+      } else {
+        badge.textContent = 'Inactive';
+        badge.className = 'badge inactive';
+      }
     }
   }
   
   function updateConfidenceDisplay(value) {
     const display = document.getElementById('confidenceDisplay');
-    display.textContent = Math.round(value * 100) + '%';
+    if (display) {
+      display.textContent = Math.round(value * 100) + '%';
+    }
   }
   
   function updateStats(scanned, spam) {
-    document.getElementById('scannedCount').textContent = scanned.toLocaleString();
-    document.getElementById('spamCount').textContent = spam.toLocaleString();
+    const scannedEl = document.getElementById('scannedCount');
+    const spamEl = document.getElementById('spamCount');
+    if (scannedEl) scannedEl.textContent = scanned.toLocaleString();
+    if (spamEl) spamEl.textContent = spam.toLocaleString();
   }
   
   async function checkAPI() {
     const apiUrl = document.getElementById('apiUrl').value || 'http://localhost:8000';
     const statusCard = document.getElementById('status');
     const statusMessage = document.getElementById('statusMessage');
-    const statusIcon = statusCard.querySelector('.status-icon');
+    const statusIcon = statusCard ? statusCard.querySelector('.status-icon') : null;
     
-    statusMessage.textContent = 'Checking connection...';
-    statusCard.className = 'status-card disconnected';
-    statusIcon.textContent = '⏳';
-    statusIcon.style.animation = 'spin 1s linear infinite';
+    if (statusMessage) {
+      statusMessage.textContent = 'Checking connection...';
+    }
+    if (statusCard) {
+      statusCard.className = 'status-card disconnected';
+    }
+    if (statusIcon) {
+      statusIcon.textContent = '⏳';
+      statusIcon.style.animation = 'spin 1s linear infinite';
+    }
     
     try {
       const response = await fetch(`${apiUrl}/health`);
       const data = await response.json();
       
       if (data.status === 'healthy' && data.model_loaded) {
-        statusMessage.textContent = '✅ Connected & Ready';
-        statusCard.className = 'status-card connected';
-        statusIcon.textContent = '✅';
-        statusIcon.style.animation = 'none';
+        if (statusMessage) statusMessage.textContent = '✅ Connected & Ready';
+        if (statusCard) statusCard.className = 'status-card connected';
+        if (statusIcon) {
+          statusIcon.textContent = '✅';
+          statusIcon.style.animation = 'none';
+        }
       } else {
-        statusMessage.textContent = '❌ API not ready';
-        statusCard.className = 'status-card disconnected';
+        if (statusMessage) statusMessage.textContent = '❌ API not ready';
+        if (statusCard) statusCard.className = 'status-card disconnected';
+        if (statusIcon) {
+          statusIcon.textContent = '❌';
+          statusIcon.style.animation = 'none';
+        }
+      }
+    } catch (error) {
+      if (statusMessage) statusMessage.textContent = '❌ Connection failed';
+      if (statusCard) statusCard.className = 'status-card disconnected';
+      if (statusIcon) {
         statusIcon.textContent = '❌';
         statusIcon.style.animation = 'none';
       }
-    } catch (error) {
-      statusMessage.textContent = '❌ Connection failed';
-      statusCard.className = 'status-card disconnected';
-      statusIcon.textContent = '❌';
-      statusIcon.style.animation = 'none';
       console.error('API check failed:', error);
     }
   }

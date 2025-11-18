@@ -79,27 +79,49 @@ function getEmailText(element, service) {
 }
 
 function highlightSpam(element, confidence) {
-  // Add visual indicator
-  element.style.borderLeft = '4px solid #ff4444';
-  element.style.backgroundColor = '#fff5f5';
+  console.log(`[Spam Detector] Highlighting element:`, element);
+  
+  // Add visual indicator - make it very visible
+  element.style.borderLeft = '5px solid #ff0000';
+  element.style.backgroundColor = '#ffe5e5';
+  element.style.boxShadow = '0 0 5px rgba(255, 0, 0, 0.3)';
   element.setAttribute('data-spam-detected', 'true');
   element.setAttribute('data-spam-confidence', confidence.toFixed(2));
   
+  // Remove existing tooltip if any
+  const existingTooltip = element.querySelector('.spam-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+  
   // Add tooltip
   const tooltip = document.createElement('div');
-  tooltip.textContent = `⚠️ Spam detected (${(confidence * 100).toFixed(1)}% confidence)`;
+  tooltip.className = 'spam-tooltip';
+  tooltip.textContent = `⚠️ SPAM (${(confidence * 100).toFixed(1)}% confidence)`;
   tooltip.style.cssText = `
     position: absolute;
-    background: #ff4444;
+    background: #ff0000;
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     font-size: 12px;
+    font-weight: bold;
     z-index: 10000;
     pointer-events: none;
+    top: 5px;
+    right: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   `;
-  element.style.position = 'relative';
+  
+  // Ensure parent has relative positioning
+  const computedStyle = window.getComputedStyle(element);
+  if (computedStyle.position === 'static') {
+    element.style.position = 'relative';
+  }
+  
   element.appendChild(tooltip);
+  
+  console.log(`[Spam Detector] ✅ Spam email highlighted successfully`);
 }
 
 async function scanEmails() {
@@ -170,7 +192,11 @@ async function scanEmails() {
               });
             });
             
+            // Log all predictions for debugging
+            console.log(`[Spam Detector] Email prediction - Spam: ${response.is_spam}, Confidence: ${(response.confidence * 100).toFixed(1)}%, Threshold: ${(confidenceThreshold * 100).toFixed(1)}%`);
+            
             if (response.is_spam && response.confidence >= confidenceThreshold) {
+              console.log(`[Spam Detector] ✅ Highlighting spam email (confidence: ${(response.confidence * 100).toFixed(1)}%)`);
               highlightSpam(element, response.confidence);
               spamDetected++;
               
@@ -192,6 +218,8 @@ async function scanEmails() {
                   }
                 }
               });
+            } else if (response.is_spam) {
+              console.log(`[Spam Detector] ⚠️ Spam detected but below threshold (${(response.confidence * 100).toFixed(1)}% < ${(confidenceThreshold * 100).toFixed(1)}%)`);
             }
           } else {
             console.error('[Spam Detector] Prediction failed:', response?.error);
