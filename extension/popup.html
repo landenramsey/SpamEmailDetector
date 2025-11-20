@@ -1,8 +1,24 @@
 <!DOCTYPE html>
+<!--
+  popup.html - Browser extension popup UI
+  
+  This file contains the HTML structure and inline CSS for the extension's settings popup.
+  The popup displays:
+  - Connection status to the API server
+  - Real-time statistics (emails scanned, spam detected)
+  - Enable/disable toggle
+  - Confidence threshold slider
+  - API URL configuration
+  - Auto-move to spam toggle
+  - Test connection button
+  
+  JavaScript functionality is handled by popup.js
+-->
 <html>
 <head>
   <meta charset="utf-8">
   <style>
+    /* Global styles and reset */
     * {
       margin: 0;
       padding: 0;
@@ -416,8 +432,10 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+    <!-- Main container with gradient background -->
+    <div class="container">
+      <!-- Header section with title and subtitle -->
+      <div class="header">
       <h1>
         <span>🛡️</span>
         <span>Spam Detector</span>
@@ -464,6 +482,7 @@
         </div>
       </div>
       
+      <!-- API Configuration: Server URL setting -->
       <div class="section">
         <div class="section-title">
           <span>🔗</span>
@@ -474,6 +493,7 @@
         <div class="info">Local or remote spam detection API endpoint</div>
       </div>
       
+      <!-- Confidence Threshold: Slider to adjust spam detection sensitivity (0-100%) -->
       <div class="section">
         <div class="section-title">
           <span>🎯</span>
@@ -494,6 +514,7 @@
         <div class="info">Only mark emails as spam if confidence exceeds this threshold</div>
       </div>
       
+      <!-- Advanced Options: Auto-move spam emails to spam folder -->
       <div class="section">
         <div class="section-title">
           <span>⚠️</span>
