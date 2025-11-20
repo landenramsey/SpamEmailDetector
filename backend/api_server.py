@@ -23,6 +23,7 @@ detector = None
 
 @app.on_event("startup")
 async def startup_event():
+    """Loads the spam detection model once at server startup"""
     global detector
     print("Loading spam detection model...")
     detector = SpamDetector()
@@ -38,14 +39,30 @@ class SpamResponse(BaseModel):
 
 @app.get("/")
 async def root():
+    """Root endpoint - returns API status information"""
     return {"message": "Email Spam Detector API", "status": "running"}
 
 @app.get("/health")
 async def health():
+    """Health check endpoint - verifies API is running and model is loaded"""
     return {"status": "healthy", "model_loaded": detector is not None}
 
 @app.post("/predict", response_model=SpamResponse)
 async def predict_spam(email: EmailRequest):
+    """
+    Predicts if an email is spam using the trained LSTM model
+    
+    Args:
+        email: EmailRequest with text field containing email content
+    
+    Returns:
+        SpamResponse with is_spam (bool), confidence (float), and message (str)
+    
+    Raises:
+        HTTPException 503: If model is not loaded
+        HTTPException 400: If email text is empty
+        HTTPException 500: If prediction fails
+    """
     """
     Predict if an email is spam
     
@@ -74,6 +91,15 @@ async def predict_spam(email: EmailRequest):
 
 @app.post("/predict/batch")
 async def predict_batch(emails: list[EmailRequest]):
+    """
+    Predicts spam for multiple emails at once (batch processing)
+    
+    Args:
+        emails: List of EmailRequest objects
+    
+    Returns:
+        Dictionary with results array and total count
+    """
     """
     Predict spam for multiple emails at once
     """

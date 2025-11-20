@@ -23,6 +23,11 @@ class EmailDataset(Dataset):
         return len(self.texts)
     
     def __getitem__(self, idx):
+        """
+        Converts a single email text into a padded sequence of word indices
+        @param idx: Index of the email in the dataset
+        @returns: Tuple of (sequence_tensor, label_tensor)
+        """
         text = self.texts[idx]
         # Convert text to sequence of word indices
         sequence = [self.vocab.get(word, 0) for word in text.split()[:MAX_SEQUENCE_LENGTH]]
@@ -35,7 +40,16 @@ class EmailDataset(Dataset):
         return torch.tensor(sequence, dtype=torch.long), torch.tensor(self.labels[idx], dtype=torch.long)
 
 def build_vocab(texts, max_vocab_size=VOCAB_SIZE):
-    """Build vocabulary from texts"""
+    """
+    Builds vocabulary dictionary from training texts
+    - Counts word frequencies
+    - Keeps top N most common words (default 10,000)
+    - Adds <PAD>=0 and <UNK>=1 special tokens
+    
+    @param texts: List of email text strings
+    @param max_vocab_size: Maximum vocabulary size
+    @returns: Dictionary mapping words to indices
+    """
     word_counts = {}
     for text in texts:
         for word in text.lower().split():
@@ -51,7 +65,12 @@ def build_vocab(texts, max_vocab_size=VOCAB_SIZE):
     return vocab
 
 def prepare_data(texts, labels):
-    """Prepare training data"""
+    """
+    Prepares training data by building vocabulary and creating PyTorch Dataset
+    @param texts: List of email text strings
+    @param labels: List of spam labels (0=ham, 1=spam)
+    @returns: Tuple of (EmailDataset, vocabulary_dict)
+    """
     # Build vocabulary
     vocab = build_vocab(texts)
     
@@ -61,7 +80,11 @@ def prepare_data(texts, labels):
     return dataset, vocab
 
 def load_data_from_csv(csv_path=None):
-    """Load email data from CSV file"""
+    """
+    Loads email training data from CSV file
+    @param csv_path: Path to CSV file (defaults to data/emails.csv)
+    @returns: Tuple of (texts_list, labels_list)
+    """
     if csv_path is None:
         csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'emails.csv')
     print(f"Loading data from {csv_path}...")
@@ -77,7 +100,17 @@ def load_data_from_csv(csv_path=None):
     return texts, labels
 
 def train_model(texts, labels):
-    """Train the spam detection model"""
+    """
+    Trains the LSTM spam detection model
+    - Splits data into train/validation (80/20)
+    - Trains for NUM_EPOCHS with Adam optimizer
+    - Prints accuracy metrics after each epoch
+    - Saves model weights and vocabulary to disk
+    
+    @param texts: List of email text strings
+    @param labels: List of spam labels (0=ham, 1=spam)
+    @returns: Tuple of (trained_model, vocabulary_dict)
+    """
     print("Preparing data...")
     dataset, vocab = prepare_data(texts, labels)
     

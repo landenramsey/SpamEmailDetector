@@ -1,6 +1,9 @@
 // Background service worker for the extension
 
-// Get API URL from storage (defaults to localhost)
+/**
+ * Retrieves the API URL from Chrome storage, defaults to localhost:8000
+ * @returns {Promise<string>} API URL string
+ */
 async function getApiUrl() {
   const items = await chrome.storage.sync.get(['apiUrl']);
   return items.apiUrl || 'http://localhost:8000';
@@ -34,6 +37,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
+/**
+ * Checks if the API server is healthy and model is loaded
+ * @returns {Promise<boolean>} True if API is healthy and model is loaded
+ */
 async function checkAPIHealth() {
   try {
     const apiUrl = await getApiUrl();
@@ -46,6 +53,12 @@ async function checkAPIHealth() {
   }
 }
 
+/**
+ * Sends email text to the FastAPI server for spam prediction
+ * @param {string} text - Email text to analyze
+ * @returns {Promise<Object>} Prediction result with is_spam and confidence
+ * @throws {Error} If API request fails
+ */
 async function predictSpam(text) {
   try {
     const apiUrl = await getApiUrl();

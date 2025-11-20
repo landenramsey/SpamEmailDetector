@@ -13,6 +13,11 @@ class SpamClassifier(nn.Module):
         self.fc2 = nn.Linear(128, num_classes)
         
     def forward(self, x):
+        """
+        Forward pass through the neural network
+        @param x: Input tensor of word indices [batch_size, sequence_length]
+        @returns: Logits tensor [batch_size, num_classes] (2 classes: ham/spam)
+        """
         embedded = self.embedding(x)
         lstm_out, (hidden, _) = self.lstm(embedded)
         # Use the last hidden state

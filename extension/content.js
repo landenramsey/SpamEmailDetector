@@ -18,7 +18,10 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.confidenceThreshold) confidenceThreshold = changes.confidenceThreshold.newValue;
 });
 
-// Detect which email service we're on
+/**
+ * Detects which email service is currently active (Gmail, Outlook, or unknown)
+ * @returns {string} 'gmail', 'outlook', or 'unknown'
+ */
 function detectEmailService() {
   if (window.location.hostname.includes('mail.google.com')) {
     return 'gmail';
@@ -47,6 +50,13 @@ const OUTLOOK_SELECTORS = {
   moveToSpamButton: '[aria-label*="Move to Junk"], [aria-label*="Move to Spam"]'
 };
 
+/**
+ * Extracts subject and snippet text from an email element
+ * Uses multiple selector fallbacks for reliability across Gmail/Outlook versions
+ * @param {HTMLElement} element - The email DOM element
+ * @param {string} service - 'gmail' or 'outlook'
+ * @returns {string} Combined subject and snippet text
+ */
 function getEmailText(element, service) {
   let subject = '';
   let snippet = '';
@@ -123,6 +133,14 @@ function getEmailText(element, service) {
   return `${subject} ${snippet}`.trim();
 }
 
+/**
+ * Attempts to move an email to spam/junk folder using multiple fallback methods
+ * Tries: direct button click, parent container search, toolbar, keyboard shortcut, context menu
+ * @param {HTMLElement} element - The email DOM element to move
+ * @param {string} service - 'gmail' or 'outlook'
+ * @param {Object} selectors - Service-specific CSS selectors
+ * @returns {boolean} True if move was attempted (may be async)
+ */
 function moveEmailToSpam(element, service, selectors) {
   console.log(`[Spam Detector] Attempting to move email to spam folder (${service})`);
   console.log(`[Spam Detector] Element:`, element);
@@ -346,6 +364,11 @@ function moveEmailToSpam(element, service, selectors) {
   return moved;
 }
 
+/**
+ * Adds visual indicators to mark an email as spam (red border, background, tooltip, move button)
+ * @param {HTMLElement} element - The email DOM element to highlight
+ * @param {number} confidence - Spam confidence score (0-1)
+ */
 function highlightSpam(element, confidence) {
   console.log(`[Spam Detector] Highlighting element:`, element);
   
@@ -482,6 +505,11 @@ function highlightSpam(element, confidence) {
   console.log(`[Spam Detector] ✅ Spam email highlighted successfully`);
 }
 
+/**
+ * Main scanning function: finds email elements, extracts text, sends to API for prediction
+ * Highlights spam emails and optionally moves them to spam folder
+ * Skips already-processed emails using data-spam-checked attribute
+ */
 async function scanEmails() {
   if (!isEnabled) {
     console.log('[Spam Detector] Scanning disabled');
@@ -630,7 +658,10 @@ async function scanEmails() {
   }
 }
 
-// Wait for page to be ready
+/**
+ * Initializes the content script: sets up initial scan, MutationObserver for new emails,
+ * and periodic scanning every 10 seconds
+ */
 function init() {
   console.log('[Spam Detector] Content script loaded');
   console.log('[Spam Detector] Current URL:', window.location.href);

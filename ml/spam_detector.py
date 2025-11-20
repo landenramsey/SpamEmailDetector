@@ -15,7 +15,11 @@ class SpamDetector:
         self.load_model()
     
     def load_model(self):
-        """Load trained model and vocabulary"""
+        """
+        Loads the trained PyTorch model weights and vocabulary dictionary
+        Sets model to evaluation mode and moves to appropriate device (CPU/GPU)
+        Raises FileNotFoundError if model files don't exist
+        """
         try:
             self.model = SpamClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES)
             model_path = os.path.join(os.path.dirname(__file__), '..', MODEL_PATH)
@@ -37,7 +41,15 @@ class SpamDetector:
             raise
     
     def preprocess_text(self, text):
-        """Preprocess text for prediction"""
+        """
+        Converts email text into a tensor of word indices for model input
+        - Lowercases text and splits into words
+        - Maps words to vocabulary indices (unknown words → 1)
+        - Pads or truncates to MAX_SEQUENCE_LENGTH (500 tokens)
+        
+        @param text: Raw email text string
+        @returns: PyTorch tensor of shape [1, MAX_SEQUENCE_LENGTH]
+        """
         # Convert to lowercase and split
         words = text.lower().split()
         # Convert to sequence
@@ -51,7 +63,13 @@ class SpamDetector:
         return torch.tensor([sequence], dtype=torch.long).to(self.device)
     
     def predict(self, text):
-        """Predict if email is spam"""
+        """
+        Predicts if an email is spam using the loaded LSTM model
+        
+        @param text: Email text to analyze
+        @returns: Tuple of (is_spam: bool, confidence: float)
+                  confidence is the probability of spam (0-1)
+        """
         with torch.no_grad():
             processed = self.preprocess_text(text)
             output = self.model(processed)

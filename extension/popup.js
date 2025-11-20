@@ -83,6 +83,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 2000);
   });
   
+  /**
+   * Updates the enabled/disabled status badge in the popup UI
+   * @param {boolean} isEnabled - Whether spam detection is enabled
+   */
   function updateEnabledStatus(isEnabled) {
     const badge = document.getElementById('enabledStatus');
     if (badge) {
@@ -96,6 +100,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
+  /**
+   * Updates the confidence threshold display percentage
+   * @param {number} value - Confidence threshold (0-1)
+   */
   function updateConfidenceDisplay(value) {
     const display = document.getElementById('confidenceDisplay');
     if (display) {
@@ -103,6 +111,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
+  /**
+   * Updates the statistics display (scanned count and spam count)
+   * @param {number} scanned - Total emails scanned
+   * @param {number} spam - Total spam emails detected
+   */
   function updateStats(scanned, spam) {
     const scannedEl = document.getElementById('scannedCount');
     const spamEl = document.getElementById('spamCount');
@@ -110,6 +123,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (spamEl) spamEl.textContent = spam.toLocaleString();
   }
   
+  /**
+   * Tests the API connection by calling the /health endpoint
+   * Updates UI status indicators (connected/disconnected) based on response
+   */
   async function checkAPI() {
     const apiUrl = document.getElementById('apiUrl').value || 'http://localhost:8000';
     const statusCard = document.getElementById('status');
