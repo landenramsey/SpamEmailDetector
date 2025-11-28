@@ -148,68 +148,139 @@ function moveEmailToSpam(element, service, selectors) {
   let moved = false;
   
   if (service === 'gmail') {
-    // Gmail: Try multiple methods
-    // Method 1: Click on the row first to select, then look for spam button
-    element.click();
+    // Gmail: Use checkbox to select email (doesn't open it)
+    // Method 1: Find and click checkbox to select email
+    const checkbox = element.querySelector('input[type="checkbox"]') ||
+                     element.querySelector('[role="checkbox"]') ||
+                     element.closest('tr')?.querySelector('input[type="checkbox"]') ||
+                     element.closest('tr')?.querySelector('[role="checkbox"]');
+    
+    if (checkbox) {
+      console.log('[Spam Detector] Found Gmail checkbox, selecting email...');
+      // Check if already checked
+      if (!checkbox.checked) {
+        checkbox.click();
+      }
+    } else {
+      // Fallback: Try to select using row click but prevent default
+      console.log('[Spam Detector] No checkbox found, trying row selection...');
+      const row = element.closest('tr');
+      if (row) {
+        // Use mousedown + mouseup instead of click to avoid navigation
+        const selectEvent = new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          ctrlKey: false
+        });
+        row.dispatchEvent(selectEvent);
+      }
+    }
     
     setTimeout(() => {
       // Hover to reveal action buttons
-      element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
-      element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
+      const row = element.closest('tr') || element;
+      row.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true }));
+      row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, cancelable: true }));
       
       // Try to find spam button with multiple attempts
       const findAndClickSpam = () => {
-        const spamBtn = element.querySelector('[aria-label*="Report spam" i]') ||
-                        element.querySelector('[aria-label*="Mark as spam" i]') ||
-                        element.querySelector('div[role="button"][aria-label*="spam" i]') ||
-                        element.querySelector('button[aria-label*="spam" i]') ||
-                        element.querySelector('[title*="spam" i]') ||
-                        element.querySelector('[aria-label*="Spam" i]');
+        // Search in the row and its parents
+        const searchContainer = element.closest('tr') || element;
+        const spamBtn = searchContainer.querySelector('[aria-label*="Report spam" i]') ||
+                        searchContainer.querySelector('[aria-label*="Mark as spam" i]') ||
+                        searchContainer.querySelector('div[role="button"][aria-label*="spam" i]') ||
+                        searchContainer.querySelector('button[aria-label*="spam" i]') ||
+                        searchContainer.querySelector('[title*="spam" i]') ||
+                        searchContainer.querySelector('[aria-label*="Spam" i]') ||
+                        // Also check in toolbar/action bar
+                        document.querySelector('[aria-label*="Report spam" i]') ||
+                        document.querySelector('[aria-label*="Mark as spam" i]');
         
         if (spamBtn && spamBtn.offsetParent !== null) { // Check if visible
           console.log('[Spam Detector] Found Gmail spam button, clicking...', spamBtn);
           spamBtn.focus();
+          // Use both click methods for reliability
           spamBtn.click();
+          spamBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
           console.log('[Spam Detector] ✅ Gmail spam button clicked');
           moved = true;
           return true;
         }
         
-        // Check parent container
+        // Check parent containers
         let parent = element.closest('tr, div[role="row"]');
-        if (parent) {
+        for (let i = 0; i < 3 && parent && parent !== document.body; i++) {
           parent.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
           const parentSpamBtn = parent.querySelector('[aria-label*="spam" i], [aria-label*="Spam" i]');
           if (parentSpamBtn && parentSpamBtn.offsetParent !== null) {
-            console.log('[Spam Detector] Found spam button in parent');
+            console.log('[Spam Detector] Found spam button in parent level', i);
             parentSpamBtn.focus();
             parentSpamBtn.click();
             moved = true;
             return true;
           }
+          parent = parent.parentElement;
         }
         
         return false;
       };
       
       // Try multiple times with delays
-      setTimeout(() => findAndClickSpam(), 100);
-      setTimeout(() => findAndClickSpam(), 300);
-      setTimeout(() => findAndClickSpam(), 500);
+      setTimeout(() => findAndClickSpam(), 150);
+      setTimeout(() => findAndClickSpam(), 400);
+      setTimeout(() => findAndClickSpam(), 700);
       
-      // If still not found, try keyboard shortcut (Gmail: J for archive, but we need spam)
-      if (!moved) {
-        console.log('[Spam Detector] Gmail: Spam button not found after attempts');
-      }
-    }, 100);
+      // If still not found, try keyboard shortcut
+      setTimeout(() => {
+        if (!moved) {
+          console.log('[Spam Detector] Gmail: Trying keyboard shortcut...');
+          // Gmail: '!' key marks as spam when email is selected
+          try {
+            const keyboardEvent = new KeyboardEvent('keydown', {
+              key: '!',
+              code: 'Digit1',
+              shiftKey: true,
+              bubbles: true,
+              cancelable: true
+            });
+            document.activeElement?.dispatchEvent(keyboardEvent);
+          } catch (error) {
+            console.error('[Spam Detector] Keyboard shortcut error:', error);
+          }
+        }
+      }, 1000);
+    }, 200);
     
   } else if (service === 'outlook') {
     // Outlook: Try multiple approaches
     console.log('[Spam Detector] Searching for Outlook spam/junk button...');
     
-    // Method 1: Select the email first
-    element.click();
-    element.focus();
+    // Method 1: Select the email using checkbox or selection (don't click to open)
+    const checkbox = element.querySelector('input[type="checkbox"]') ||
+                     element.querySelector('[role="checkbox"]') ||
+                     element.closest('[role="listitem"]')?.querySelector('input[type="checkbox"]') ||
+                     element.closest('[role="listitem"]')?.querySelector('[role="checkbox"]');
+    
+    if (checkbox) {
+      console.log('[Spam Detector] Found Outlook checkbox, selecting email...');
+      if (!checkbox.checked) {
+        checkbox.click();
+      }
+    } else {
+      // Try to select without opening - use mousedown on the row
+      console.log('[Spam Detector] No checkbox found, trying selection...');
+      const listItem = element.closest('[role="listitem"]') || element;
+      // Use mousedown instead of click to select without opening
+      const selectEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        ctrlKey: false
+      });
+      listItem.dispatchEvent(selectEvent);
+      listItem.focus();
+    }
     
     setTimeout(() => {
       // Look for junk button in the email row
@@ -460,47 +531,101 @@ function highlightSpam(element, confidence) {
   });
   
   moveButton.addEventListener('click', (e) => {
+    // Prevent all event propagation to stop email from opening
     e.stopPropagation();
     e.preventDefault();
     e.stopImmediatePropagation();
+    
+    // Also stop on capture phase
+    if (e.cancelBubble !== undefined) {
+      e.cancelBubble = true;
+    }
+    
     console.log('[Spam Detector] Manual move to spam button clicked');
     const selectors = service === 'gmail' ? GMAIL_SELECTORS : OUTLOOK_SELECTORS;
     
     moveButton.textContent = 'Moving...';
     moveButton.disabled = true;
     moveButton.style.background = '#999';
+    moveButton.style.pointerEvents = 'none';
     
-    // Execute move function (it's async, so we'll check after a delay)
-    moveEmailToSpam(element, service, selectors);
-    
-    // Check if move was successful after reasonable delay
-    // For Gmail: 600ms, For Outlook: 1500ms (has more methods to try)
-    const checkDelay = service === 'gmail' ? 600 : 1500;
-    
+    // Small delay to ensure click event is fully handled
     setTimeout(() => {
-      // Check if email still exists (might have been moved)
-      const stillExists = document.contains(element) && 
-                         !element.closest('[aria-label*="Spam" i], [aria-label*="Junk" i]') &&
-                         element.offsetParent !== null;
+      // Execute move function
+      moveEmailToSpam(element, service, selectors);
       
-      // If element is still visible, assume it might not have moved
-      // But we'll show success anyway to avoid confusion
-      // User can click again if needed
-      moveButton.textContent = 'Moved ✓';
-      moveButton.style.background = '#28a745';
+      // Check if move was successful after reasonable delay
+      // For Gmail: 1000ms, For Outlook: 2000ms (has more methods to try)
+      const checkDelay = service === 'gmail' ? 1000 : 2000;
       
       setTimeout(() => {
-        // Allow another attempt if user wants
-        moveButton.textContent = 'Move to Spam';
-        moveButton.disabled = false;
-        moveButton.style.background = '#ff6b35';
-      }, 2000);
-    }, checkDelay);
+        // Check if email still exists (might have been moved)
+        const stillExists = document.contains(element) && 
+                           element.offsetParent !== null;
+        
+        if (!stillExists) {
+          // Email was moved successfully
+          moveButton.textContent = 'Moved ✓';
+          moveButton.style.background = '#28a745';
+        } else {
+          // Email still visible - might not have moved
+          moveButton.textContent = 'Try Again';
+          moveButton.style.background = '#ff6b35';
+          moveButton.disabled = false;
+          moveButton.style.pointerEvents = 'auto';
+        }
+        
+        setTimeout(() => {
+          // Reset button after 2 seconds
+          if (document.contains(moveButton)) {
+            moveButton.textContent = 'Move to Spam';
+            moveButton.disabled = false;
+            moveButton.style.background = '#ff6b35';
+            moveButton.style.pointerEvents = 'auto';
+          }
+        }, 2000);
+      }, checkDelay);
+    }, 50);
   });
   
   container.appendChild(tooltip);
   container.appendChild(moveButton);
+  
+  // Make container position relative if not already
+  const elementPosition = window.getComputedStyle(element).position;
+  if (elementPosition === 'static') {
+    element.style.position = 'relative';
+  }
+  
   element.appendChild(container);
+  
+  // Prevent clicks on the container from opening the email
+  // Use capture phase to catch events before they reach the email element
+  container.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true); // Use capture phase
+  
+  // Also prevent mousedown and mouseup on the container
+  ['mousedown', 'mouseup'].forEach(eventType => {
+    container.addEventListener(eventType, (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }, true);
+  });
+  
+  // Prevent the email element from opening when clicking the button area
+  const originalClickHandler = element.onclick;
+  element.addEventListener('click', (e) => {
+    // If click originated from our container, prevent default
+    if (e.target.closest('.spam-tooltip') || e.target.closest('.spam-move-button')) {
+      e.stopPropagation();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true); // Capture phase
   
   console.log(`[Spam Detector] ✅ Spam email highlighted successfully`);
 }
@@ -632,10 +757,16 @@ async function scanEmails() {
               chrome.storage.sync.get(['autoMoveToSpam'], (items) => {
                 if (items.autoMoveToSpam) {
                   console.log('[Spam Detector] Auto-move enabled, attempting to move email to spam...');
-                  // Small delay to ensure highlighting is complete
+                  // Longer delay to ensure highlighting is complete and page is stable
+                  // Also gives user a moment to see the highlight before it moves
                   setTimeout(() => {
-                    moveEmailToSpam(element, service, selectors);
-                  }, 300);
+                    // Double-check element still exists and is visible
+                    if (document.contains(element) && element.offsetParent !== null) {
+                      moveEmailToSpam(element, service, selectors);
+                    } else {
+                      console.log('[Spam Detector] Email element no longer available for auto-move');
+                    }
+                  }, 1000); // Increased delay to 1 second
                 } else {
                   console.log('[Spam Detector] Auto-move disabled in settings');
                 }
